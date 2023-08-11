@@ -8,7 +8,7 @@ namespace AstralEncrypt
         public static class RandomStringGenerator
         {
             private static readonly Random Random = new Random();
-            private const string Chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+            private const string Chars = "شسزرذدخحجثتباصضطظعغفقكلمنهويءىئؤة123467890";
 
             public static string Generate(int length)
             {

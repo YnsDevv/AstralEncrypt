@@ -175,6 +175,10 @@ namespace AstralEncrypt
             {
                 loaderstub = loaderstub.Replace("#Injection", "MSBuild.exe");
             }
+            else if (guna2RadioButton_vbc.Checked)
+            {
+                loaderstub = loaderstub.Replace("#Injection", "vbc.exe");
+            }
 
             return loaderstub;
         }

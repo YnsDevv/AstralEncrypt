@@ -61,6 +61,7 @@
             this.guna2Button1_hide = new Guna.UI2.WinForms.Guna2Button();
             this.guna2HtmlLabel1_title = new Guna.UI2.WinForms.Guna2HtmlLabel();
             this.guna2CheckBox1_anti_vm = new Guna.UI2.WinForms.Guna2CheckBox();
+            this.guna2RadioButton_vbc = new Guna.UI2.WinForms.Guna2RadioButton();
             ((System.ComponentModel.ISupportInitialize)(this.guna2CirclePictureBox1)).BeginInit();
             this.SuspendLayout();
             // 
@@ -327,12 +328,31 @@
             this.guna2CheckBox1_anti_vm.UncheckedState.BorderThickness = 0;
             this.guna2CheckBox1_anti_vm.UncheckedState.FillColor = System.Drawing.Color.FromArgb(((int)(((byte)(125)))), ((int)(((byte)(137)))), ((int)(((byte)(149)))));
             // 
+            // guna2RadioButton_vbc
+            // 
+            this.guna2RadioButton_vbc.CheckedState.BorderColor = System.Drawing.Color.FromArgb(((int)(((byte)(94)))), ((int)(((byte)(148)))), ((int)(((byte)(255)))));
+            this.guna2RadioButton_vbc.CheckedState.BorderThickness = 0;
+            this.guna2RadioButton_vbc.CheckedState.FillColor = System.Drawing.Color.FromArgb(((int)(((byte)(94)))), ((int)(((byte)(148)))), ((int)(((byte)(255)))));
+            this.guna2RadioButton_vbc.CheckedState.InnerColor = System.Drawing.Color.White;
+            this.guna2RadioButton_vbc.CheckedState.InnerOffset = -4;
+            this.guna2RadioButton_vbc.ForeColor = System.Drawing.Color.Black;
+            this.guna2RadioButton_vbc.Location = new System.Drawing.Point(256, 177);
+            this.guna2RadioButton_vbc.Name = "guna2RadioButton_vbc";
+            this.guna2RadioButton_vbc.Size = new System.Drawing.Size(85, 22);
+            this.guna2RadioButton_vbc.TabIndex = 16;
+            this.guna2RadioButton_vbc.Text = "vbc.exe";
+            this.guna2RadioButton_vbc.UncheckedState.BorderColor = System.Drawing.Color.FromArgb(((int)(((byte)(125)))), ((int)(((byte)(137)))), ((int)(((byte)(149)))));
+            this.guna2RadioButton_vbc.UncheckedState.BorderThickness = 2;
+            this.guna2RadioButton_vbc.UncheckedState.FillColor = System.Drawing.Color.Transparent;
+            this.guna2RadioButton_vbc.UncheckedState.InnerColor = System.Drawing.Color.Transparent;
+            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.BackColor = System.Drawing.Color.White;
             this.ClientSize = new System.Drawing.Size(345, 245);
+            this.Controls.Add(this.guna2RadioButton_vbc);
             this.Controls.Add(this.guna2CheckBox1_anti_vm);
             this.Controls.Add(this.guna2HtmlLabel1_title);
             this.Controls.Add(this.guna2Button1_hide);
@@ -358,6 +378,8 @@
             this.ResumeLayout(false);
             this.PerformLayout();
         }
+
+        private Guna.UI2.WinForms.Guna2RadioButton guna2RadioButton_vbc;
 
         private Guna.UI2.WinForms.Guna2CheckBox guna2CheckBox1_anti_vm;
 

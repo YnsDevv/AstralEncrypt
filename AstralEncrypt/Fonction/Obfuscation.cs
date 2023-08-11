@@ -17,18 +17,6 @@ namespace AstralEncrypt.Fonction
         public static string ClassRunpe;
         public static string MethodRunpe;
 
-        public static string random_string(int length)
-        {
-            const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-            string name = "";
-            do
-            {
-                name = new string(Enumerable.Repeat(chars, length).Select(s => s[_random.Next(s.Length)]).ToArray());
-            } while (_names.Contains(name));
-
-            return name;
-        }
-
         public static void clean_asm(ModuleDef md)
         {
             foreach (var type in md.GetTypes())
@@ -175,7 +163,7 @@ namespace AstralEncrypt.Fonction
                     // method foward declaration
                     if (method.DeclaringType.IsForwarder) continue;
 
-                    string encName = random_string(50);
+                    string encName = RandomString.RandomStringGenerator.Generate(50);
                     method.Name = encName;
                 }
             }
@@ -195,7 +183,7 @@ namespace AstralEncrypt.Fonction
         public static void obfuscate_assembly_info(ModuleDef md)
         {
             // obfuscate assembly name
-            string encName = random_string(50);
+            string encName = RandomString.RandomStringGenerator.Generate(50);
             md.Assembly.Name = encName;
 
             // obfuscate Assembly Attributes(AssemblyInfo) .rc file
@@ -209,25 +197,17 @@ namespace AstralEncrypt.Fonction
             {
                 if (attri.Any(attribute.AttributeType.Name.Contains))
                 {
-                    string encAttri = random_string(50);
+                    string encAttri = RandomString.RandomStringGenerator.Generate(50);
                     attribute.ConstructorArguments[0] = new CAArgument(md.CorLibTypes.String, new UTF8String(encAttri));
                 }
             }
         }
-
-        /// <summary>
-        /// Obfuscate ECMA CIL (.NET IL) assemblies by obfuscating names of methods, classes, namespaces, assemblyInfo and encoding strings
-        /// </summary>
-        /// <param name="inFile">The .Net assembly path you want to obfuscate</param>
-        /// <param name="outFile">Path to the newly obfuscated file, default is "inFile".obfuscated</param>
-        /// <param name="stub"></param>
-        /// <param name="fullPathFileNameOut"></param>
         public static void ObfuscateStub(string stub, string fullPathFileNameOut,string icon = null)
         {
             Compiler.CompileCSharpFile(stub, fullPathFileNameOut,icon);
             
             ModuleDef md = ModuleDefMD.Load(fullPathFileNameOut);
-            md.Name = random_string(50);
+            md.Name = RandomString.RandomStringGenerator.Generate(50);
 
             obfuscate_strings(md);
             obfuscate_methods(md);
@@ -244,7 +224,7 @@ namespace AstralEncrypt.Fonction
         public static void ObfuscateExe(byte[] filenameExeLoad, string pathOut)
         {
             ModuleDef md = ModuleDefMD.Load(filenameExeLoad);
-            md.Name = random_string(50);
+            md.Name = RandomString.RandomStringGenerator.Generate(50);
 
             obfuscate_strings(md);
             obfuscate_methods(md);
