@@ -4,15 +4,14 @@
     <PropertyGroup>
         <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
         <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-        <ProjectGuid>{B0B7AD9D-3204-48F3-BE03-9F52FDD72381}</ProjectGuid>
+        <ProjectGuid>{76C91F04-36E3-40CB-950B-0592E331A2FC}</ProjectGuid>
         <OutputType>WinExe</OutputType>
-        <RootNamespace>AstralEncrypt</RootNamespace>
-        <AssemblyName>AstralEncrypt</AssemblyName>
+        <RootNamespace>Anti_Analysis</RootNamespace>
+        <AssemblyName>Anti_Analysis</AssemblyName>
         <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
         <FileAlignment>512</FileAlignment>
         <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
         <Deterministic>true</Deterministic>
-        <ApplicationIcon>Ressources\AstralEncryptLogo.ico</ApplicationIcon>
     </PropertyGroup>
     <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
         <PlatformTarget>AnyCPU</PlatformTarget>
@@ -34,17 +33,10 @@
         <WarningLevel>4</WarningLevel>
     </PropertyGroup>
     <ItemGroup>
-        <Reference Include="dnlib, Version=3.6.0.0, Culture=neutral, PublicKeyToken=50e96378b6e77999, processorArchitecture=MSIL">
-          <HintPath>..\packages\dnlib.3.6.0\lib\net45\dnlib.dll</HintPath>
-        </Reference>
-        <Reference Include="Guna.UI2, Version=2.0.4.4, Culture=neutral, PublicKeyToken=8b9d14aa5142e261, processorArchitecture=MSIL">
-          <HintPath>..\packages\Guna.UI2.WinForms.2.0.4.4\lib\net48\Guna.UI2.dll</HintPath>
-        </Reference>
+        <Reference Include="Microsoft.VisualBasic" />
         <Reference Include="System"/>
         <Reference Include="System.Core"/>
-        <Reference Include="System.Design" />
         <Reference Include="System.Management" />
-        <Reference Include="System.Web" />
         <Reference Include="System.Xml.Linq"/>
         <Reference Include="System.Data.DataSetExtensions"/>
         <Reference Include="Microsoft.CSharp"/>
@@ -56,22 +48,8 @@
         <Reference Include="System.Xml"/>
     </ItemGroup>
     <ItemGroup>
-        <Compile Include="Fonction\Compiler.cs" />
-        <Compile Include="Fonction\Deplacer.cs" />
-        <Compile Include="Fonction\Encryptions.cs" />
-        <Compile Include="Fonction\Obfuscation.cs" />
-        <Compile Include="Fonction\RandomString.cs" />
-        <Compile Include="Form1.cs">
-            <SubType>Form</SubType>
-        </Compile>
-        <Compile Include="Form1.Designer.cs">
-            <DependentUpon>Form1.cs</DependentUpon>
-        </Compile>
         <Compile Include="Program.cs"/>
         <Compile Include="Properties\AssemblyInfo.cs"/>
-        <EmbeddedResource Include="Form1.resx">
-          <DependentUpon>Form1.cs</DependentUpon>
-        </EmbeddedResource>
         <EmbeddedResource Include="Properties\Resources.resx">
             <Generator>ResXFileCodeGenerator</Generator>
             <LastGenOutput>Resources.Designer.cs</LastGenOutput>
@@ -94,15 +72,6 @@
     </ItemGroup>
     <ItemGroup>
         <None Include="App.config"/>
-    </ItemGroup>
-    <ItemGroup>
-      <Content Include="Ressources\AstralEncryptLogo.ico" />
-      <Content Include="Ressources\AstralEncryptLogo.jpg" />
-      <Content Include="Ressources\Composant\AmsiEtw.exe" />
-      <Content Include="Ressources\Composant\Anti_Analysis.exe" />
-      <Content Include="Ressources\Composant\RunPE.dll" />
-      <Content Include="Ressources\StubLoaderStub\LoaderStub.txt" />
-      <Content Include="Ressources\StubLoaderStub\Stub.txt" />
     </ItemGroup>
     <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets"/>
 </Project>

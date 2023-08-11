@@ -60,6 +60,7 @@
             this.guna2CirclePictureBox1 = new Guna.UI2.WinForms.Guna2CirclePictureBox();
             this.guna2Button1_hide = new Guna.UI2.WinForms.Guna2Button();
             this.guna2HtmlLabel1_title = new Guna.UI2.WinForms.Guna2HtmlLabel();
+            this.guna2CheckBox1_anti_vm = new Guna.UI2.WinForms.Guna2CheckBox();
             ((System.ComponentModel.ISupportInitialize)(this.guna2CirclePictureBox1)).BeginInit();
             this.SuspendLayout();
             // 
@@ -309,12 +310,30 @@
             this.guna2HtmlLabel1_title.TabIndex = 14;
             this.guna2HtmlLabel1_title.Text = "Astral Encrypt";
             // 
+            // guna2CheckBox1_anti_vm
+            // 
+            this.guna2CheckBox1_anti_vm.CheckedState.BorderColor = System.Drawing.Color.Red;
+            this.guna2CheckBox1_anti_vm.CheckedState.BorderRadius = 0;
+            this.guna2CheckBox1_anti_vm.CheckedState.BorderThickness = 0;
+            this.guna2CheckBox1_anti_vm.CheckedState.FillColor = System.Drawing.Color.Red;
+            this.guna2CheckBox1_anti_vm.ForeColor = System.Drawing.Color.Black;
+            this.guna2CheckBox1_anti_vm.Location = new System.Drawing.Point(14, 161);
+            this.guna2CheckBox1_anti_vm.Name = "guna2CheckBox1_anti_vm";
+            this.guna2CheckBox1_anti_vm.Size = new System.Drawing.Size(70, 16);
+            this.guna2CheckBox1_anti_vm.TabIndex = 15;
+            this.guna2CheckBox1_anti_vm.Text = "Anti - VM";
+            this.guna2CheckBox1_anti_vm.UncheckedState.BorderColor = System.Drawing.Color.FromArgb(((int)(((byte)(125)))), ((int)(((byte)(137)))), ((int)(((byte)(149)))));
+            this.guna2CheckBox1_anti_vm.UncheckedState.BorderRadius = 0;
+            this.guna2CheckBox1_anti_vm.UncheckedState.BorderThickness = 0;
+            this.guna2CheckBox1_anti_vm.UncheckedState.FillColor = System.Drawing.Color.FromArgb(((int)(((byte)(125)))), ((int)(((byte)(137)))), ((int)(((byte)(149)))));
+            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.BackColor = System.Drawing.Color.White;
             this.ClientSize = new System.Drawing.Size(345, 245);
+            this.Controls.Add(this.guna2CheckBox1_anti_vm);
             this.Controls.Add(this.guna2HtmlLabel1_title);
             this.Controls.Add(this.guna2Button1_hide);
             this.Controls.Add(this.guna2CirclePictureBox1);
@@ -339,6 +358,8 @@
             this.ResumeLayout(false);
             this.PerformLayout();
         }
+
+        private Guna.UI2.WinForms.Guna2CheckBox guna2CheckBox1_anti_vm;
 
         private Guna.UI2.WinForms.Guna2HtmlLabel guna2HtmlLabel1_title;
 

