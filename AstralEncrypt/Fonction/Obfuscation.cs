@@ -32,6 +32,28 @@ namespace AstralEncrypt.Fonction
                 }
             }
         }
+        public static void Junkattrib(ModuleDefMD module,int number)
+        {
+            for (int i = 0; i < number; i++)
+            {
+                
+                var junkatrb = new TypeDefUser(RandomString.RandomStringGenerator.Generate(50) + RandomString.RandomStringGenerator.Generate(50), RandomString.RandomStringGenerator.Generate(50) + RandomString.RandomStringGenerator.Generate(50), module.CorLibTypes.Object.TypeDefOrRef);
+                module.Types.Add(junkatrb);
+            }
+        }
+        public static void AntiDe4Dot(ModuleDefMD module)
+        {
+            Random rnd = new Random();
+            InterfaceImpl interFace = new InterfaceImplUser(module.GlobalType);
+            for (int i = 200; i < 300; i++)
+            {
+                TypeDef typedef = new TypeDefUser("", $"Form{i.ToString()}", module.CorLibTypes.GetTypeRef("System", "Attribute"));
+                InterfaceImpl interface1 = new InterfaceImplUser(typedef);
+                module.Types.Add(typedef);
+                typedef.Interfaces.Add(interface1);
+                typedef.Interfaces.Add(interFace);
+            }
+        }
 
         public static void obfuscate_strings(ModuleDef md)
         {
@@ -206,7 +228,7 @@ namespace AstralEncrypt.Fonction
         {
             Compiler.CompileCSharpFile(stub, fullPathFileNameOut,icon);
             
-            ModuleDef md = ModuleDefMD.Load(fullPathFileNameOut);
+            ModuleDefMD md = ModuleDefMD.Load(fullPathFileNameOut);
             md.Name = RandomString.RandomStringGenerator.Generate(50);
 
             obfuscate_strings(md);
@@ -214,8 +236,9 @@ namespace AstralEncrypt.Fonction
             obfuscate_classes(md,null);
             obfuscate_namespace(md,null);
             obfuscate_assembly_info(md);
-
             clean_asm(md);
+            AntiDe4Dot(md);
+            Junkattrib(md, 8000);
             if (File.Exists(fullPathFileNameOut))
                 File.Delete(fullPathFileNameOut);
             md.Write(fullPathFileNameOut);
@@ -223,7 +246,7 @@ namespace AstralEncrypt.Fonction
 
         public static void ObfuscateExe(byte[] filenameExeLoad, string pathOut)
         {
-            ModuleDef md = ModuleDefMD.Load(filenameExeLoad);
+            ModuleDefMD md = ModuleDefMD.Load(filenameExeLoad);
             md.Name = RandomString.RandomStringGenerator.Generate(50);
 
             obfuscate_strings(md);
@@ -231,10 +254,8 @@ namespace AstralEncrypt.Fonction
             obfuscate_classes(md,null);
             obfuscate_namespace(md,null);
             obfuscate_assembly_info(md);
-            //obfuscateVariables(md); // md.Write already simplifies variable names to there type in effect mangling them i.e: aesSetup -> aes1, aesRun -> aes2
-            //obfuscateComments(md); // comments are stripped during compile opitmization
-
             clean_asm(md);
+            AntiDe4Dot(md);
             if (File.Exists(pathOut))
                 File.Delete(pathOut);
             md.Write(pathOut);
@@ -256,6 +277,7 @@ namespace AstralEncrypt.Fonction
                 obfuscate_namespace(module, namespaceRunpe);
                 obfuscate_classes(module, classRunpe);
                 obfuscate_methodsDll(module, methodsRunpe);
+                AntiDe4Dot(module);
 
                 if (File.Exists(pathFileRunpe))
                     File.Delete(pathFileRunpe);
