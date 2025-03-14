@@ -14,6 +14,7 @@ AstralEncrypt est un outil de chiffrement en C# conçu à des fins éducatives e
 ## 📦 Installation
 
 1. **Cloner le dépôt :**
+
 2. 
    ```sh
    git clone https://github.com/YnsDevv/AstralEncrypt.git
